@@ -1,0 +1,15 @@
+{
+  "project": "DA Block Collection",
+  "editUrlFormat": {
+    "label": "Document Authoring",
+    "pattern": "https://da.live/edit#/{{org}}/{{site}}{{pathname}}"
+  },
+  "plugins": [
+    {
+      "id": "da-plugin-demo",
+      "title": "Plugin demo",
+      "environments": ["da-edit"],
+      "url": "https://main--da-block-collection--aemsites.hlx.live/tools/demo/demo.html"
+    }
+  ]
+}
