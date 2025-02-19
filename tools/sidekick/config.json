@@ -10,6 +10,15 @@
       "title": "Plugin demo",
       "environments": ["da-edit"],
       "url": "https://main--da-block-collection--aemsites.hlx.live/tools/demo/demo.html"
+    },
+    {
+      "id": "cif",
+      "title": "Commerce",
+      "environments": [
+        "da-edit"
+      ],
+      "url": "http://localhost:8080/sidekick.html",
+      "passConfig": true
     }
   ]
 }
