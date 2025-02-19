@@ -17,7 +17,7 @@
       "environments": [
         "da-edit"
       ],
-      "url": "http://localhost:8080/sidekick.html",
+      "url": "http://localhost:8080/document-authoring.html",
       "passConfig": true
     }
   ]
