@@ -12,12 +12,22 @@
       "url": "https://main--da-block-collection--aemsites.hlx.live/tools/demo/demo.html"
     },
     {
+      "id": "cif-local",
+      "title": "Commerce Local",
+      "environments": [
+        "da-edit"
+      ],
+      "experience": "dialog",
+      "url": "http://localhost:8080/document-authoring.html",
+      "passConfig": true
+    },
+    {
       "id": "cif",
       "title": "Commerce",
       "environments": [
         "da-edit"
       ],
-      "url": "http://localhost:8080/document-authoring.html",
+      "url": "https://main--aem-commerce-picker-dist--oneadobe.aem.page/dist/dist/document-authoring.html",
       "passConfig": true
     }
   ]
