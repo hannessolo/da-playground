@@ -1,0 +1,37 @@
+[
+  {
+    "key": "identifier",
+    "name": "Identifier only",
+    "output": "\n      {{ #items }}\n        {{#isFolder}}\n          {{id}}\n        {{/isFolder}}\n        {{^isFolder}}\n          {{sku}}\n        {{/isFolder}}\n      {{/items}}\n    ",
+    "selection": "single",
+    "type": "any"
+  },
+  {
+    "key": "product-list-page",
+    "name": "Product List Page",
+    "output": "\n      <table width=\"100%\" style=\"border: 1px solid black;\">\n            <tr>\n                <th colspan=\"2\" style=\"border: 1px solid black; background: lightgray;\">Product List Page</th>\n            </tr>\n            <tr>\n                <td style=\"border: 1px solid black\">category</td>\n                {{ #items }}\n                <td style=\"border: 1px solid black\">{{id}}</td>\n                {{/items}}\n            </tr>\n        </table>\n    ",
+    "selection": "single",
+    "type": "folder"
+  },
+  {
+    "key": "product-teaser",
+    "name": "Product Teaser",
+    "output": "\n      <table width=\"100%\" style=\"border: 1px solid black;\">\n            <tr>\n                <th colspan=\"2\" style=\"border: 1px solid black; background: lightgray;\">Product Teaser</th>\n            </tr>\n            {{ #items }}\n            <tr>\n                <td style=\"border: 1px solid black\">SKU</td>\n                <td style=\"border: 1px solid black\">{{ sku }}</td>\n            </tr>\n            {{/items}}\n            <tr>\n                <td style=\"border: 1px solid black\">Details Button</td>\n                <td style=\"border: 1px solid black\">true</td>\n            </tr>\n            <tr>\n                <td style=\"border: 1px solid black\">Cart Button</td>\n                <td style=\"border: 1px solid black\">true</td>\n            </tr>\n        </table>\n    ",
+    "selection": "single",
+    "type": "product"
+  },
+  {
+    "key": "product-carousel",
+    "name": "Product Carousel",
+    "output": "\n        <table width=\"100%\" style=\"border: 1px solid black;\">\n            <tr>\n                <th style=\"border: 1px solid black; background: lightgray;\">Product Carousel</th>\n            </tr>\n            <tr>\n                <td style=\"border: 1px solid black\">\n                    <ul>\n                      {{ #items }}\n                        <li>{{sku}}</li>\n                      {{/items}}\n                    </ul>\n                </td>\n            </tr>\n        </table>\n    ",
+    "selection": "multiple",
+    "type": "item"
+  },
+  {
+    "key": "category-carousel",
+    "name": "Category Carousel",
+    "output": "\n        <table width=\"100%\" style=\"border: 1px solid black;\">\n            <tr>\n                <th style=\"border: 1px solid black; background: lightgray;\">Category Carousel</th>\n            </tr>\n            <tr>\n                <td style=\"border: 1px solid black\">\n                    <ul>\n                        {{ #items }}\n                        <li>{{i.id}}</li>\n                        {{/items}}\n                    </ul>\n                </td>\n            </tr>\n        </table>\n    ",
+    "selection": "multiple",
+    "type": "folder"
+  }
+]
