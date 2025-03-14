@@ -27,6 +27,7 @@
       "environments": [
         "da-edit"
       ],
+      "experience": "dialog",
       "url": "https://main--aem-commerce-picker-dist--oneadobe.aem.page/dist/dist/document-authoring.html",
       "passConfig": true
     }
