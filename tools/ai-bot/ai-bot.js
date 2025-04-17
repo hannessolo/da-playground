@@ -19,6 +19,7 @@ class AiBot extends LitElement {
     this.loading = false;
     this.messages = [];
     this.mcp = new MCPClient();
+    this.llm = 'llama3.2';
   }
 
   async connectedCallback() {
@@ -37,7 +38,7 @@ class AiBot extends LitElement {
 
     this.loading = true;
 
-    this.mcp.processQuery(this.messages).then(() => {
+    this.mcp.processQuery(this.messages, this.llm).then(() => {
       this.loading = false;
     });
   }
@@ -48,10 +49,18 @@ class AiBot extends LitElement {
         <h1>AI Bot</h1>
         <p>Enter authoring tasks in natural language:</p>
         <form>
+          <sl-select
+              label="Model"
+              name="model"
+              .value=${this.llm}
+              @change=${(e) => { this.llm = e.target.value; }}>
+            <option value="llama3.2">llama</option>
+            <option value="hf.co/lmstudio-community/Qwen2.5-7B-Instruct-1M-GGUF:Q8_0">Qwen</option>
+          </sl-select>
           <sl-input type="text" label="Query" name="query"></sl-input>
           ${this.loading ? nothing : html`<sl-button @click="${this.handleSubmit}" type="submit">Submit</sl-button>`}
           ${this.loading ? html`Loading...` : nothing}
-          ${this.messages.map((message) => html`
+          ${this.messages.slice().reverse().map((message) => html`
             <div class="${message.role === 'user' ? 'message user' : 'message ai'}">
               <div class="message-role">
                 ${message.role}

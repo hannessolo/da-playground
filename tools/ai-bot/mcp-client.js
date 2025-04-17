@@ -14,7 +14,7 @@ class MCPClient {
   async connectToServer() {
     try {
       const transport = new SSEClientTransport(
-        new URL('http://localhost:3001/sse'),
+        new URL('https://da-mcp-worker.hanneshertach490.workers.dev/sse'),
       );
       await this.mcp.connect(transport);
 
@@ -38,7 +38,7 @@ class MCPClient {
     }
   }
 
-  async fetchAIResponse(messages) {
+  async fetchAIResponse(messages, model = 'hf.co/lmstudio-community/Qwen2.5-7B-Instruct-1M-GGUF:Q8_0') {
     console.log(JSON.stringify(messages));
 
     const res = await fetch('http://localhost:11434/api/chat', {
@@ -48,7 +48,7 @@ class MCPClient {
       },
       body: JSON.stringify({
         messages,
-        model: 'hf.co/lmstudio-community/Qwen2.5-7B-Instruct-1M-GGUF:Q8_0',
+        model,
         stream: false,
         tools: this.tools,
       }),
@@ -65,8 +65,8 @@ class MCPClient {
     return data;
   }
 
-  async processQuery(messages) {
-    const response = await this.fetchAIResponse(messages);
+  async processQuery(messages, model) {
+    const response = await this.fetchAIResponse(messages, model);
 
     const finalText = [];
 
@@ -97,7 +97,7 @@ class MCPClient {
       });
 
       // eslint-disable-next-line no-await-in-loop
-      const toolResponse = await this.fetchAIResponse(messages);
+      const toolResponse = await this.fetchAIResponse(messages, model);
       messages.push(toolResponse.message);
       finalText.push(toolResponse.message.content);
       toolCalls = toolResponse.message.tool_calls;
