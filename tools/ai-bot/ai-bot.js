@@ -4,6 +4,7 @@ import 'https://da.live/nx/public/sl/components.js';
 import getStyle from 'https://da.live/nx/utils/styles.js';
 // eslint-disable-next-line import/no-unresolved
 import { LitElement, html, nothing } from 'da-lit';
+import MCPClient from './mcp-client.js';
 
 const style = await getStyle(import.meta.url);
 
@@ -17,11 +18,13 @@ class AiBot extends LitElement {
     super(props);
     this.loading = false;
     this.messages = [];
+    this.mcp = new MCPClient();
   }
 
   async connectedCallback() {
     super.connectedCallback();
     this.shadowRoot.adoptedStyleSheets = [style];
+    this.mcp.connectToServer();
   }
 
   handleSubmit(e) {
@@ -34,21 +37,8 @@ class AiBot extends LitElement {
 
     this.loading = true;
 
-    fetch('http://localhost:3001', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ messages: this.messages }),
-    }).then((res) => res.json()).then((data) => {
-      this.messages.push({
-        role: 'assistant',
-        content: data.response,
-      });
+    this.mcp.processQuery(this.messages).then(() => {
       this.loading = false;
-    }).catch((e) => {
-      this.loading = false;
-      console.error(`Error fetching data ${e}`);
     });
   }
 
@@ -68,6 +58,7 @@ class AiBot extends LitElement {
               </div>
               <div class="message-content">
                 ${message.content}
+                ${message.tool_calls ? html`Calling tool ${message.tool_calls.map((call) => call.function.name)}` : nothing}
               </div>
             </div>
           `)}
