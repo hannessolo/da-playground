@@ -1,0 +1,12 @@
+body {
+  background: white;
+}
+
+ai-bot {
+  display: block;
+  position: relative;
+  max-width: 40%;
+  z-index: 10;
+  background: white;
+  margin: auto;
+}
