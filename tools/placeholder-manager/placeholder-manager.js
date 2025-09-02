@@ -16,6 +16,7 @@ class PlaceholderManager extends LitElement {
     placeholderData: { type: Object, state: true },
     statusMessage: { type: String, state: true },
     statusType: { type: String, state: true }, // 'success', 'error', 'info'
+    basePath: { type: String, state: true },
   };
 
   constructor(props) {
@@ -25,6 +26,10 @@ class PlaceholderManager extends LitElement {
     this.placeholderData = {};
     this.statusMessage = '';
     this.statusType = 'info';
+    
+    // Initialize basePath from window query parameter, default to /hannessolo/da-playground
+    const urlParams = new URLSearchParams(window.location.search);
+    this.basePath = urlParams.get('basePath') || '/hannessolo/da-playground';
   }
 
   async connectedCallback() {
@@ -39,7 +44,7 @@ class PlaceholderManager extends LitElement {
       this.error = null;
       
       // First, get the list of types (directories) in .placeholders
-      const typesUrl = 'https://admin.da.live/list/hannessolo/da-playground/.placeholders/';
+      const typesUrl = `https://admin.da.live/list${this.basePath}/.placeholders/`;
       const typesResponse = await fetch(typesUrl, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -79,7 +84,7 @@ class PlaceholderManager extends LitElement {
           if (type && type !== '.placeholders') {
             try {
               // Fetch regions (files) for this type
-              const regionsUrl = `https://admin.da.live/list/hannessolo/da-playground/.placeholders/${type}/`;
+              const regionsUrl = `https://admin.da.live/list${this.basePath}/.placeholders/${type}/`;
               const regionsResponse = await fetch(regionsUrl, {
                 headers: {
                   'Authorization': `Bearer ${token}`
@@ -131,12 +136,12 @@ class PlaceholderManager extends LitElement {
     // remove extension from region
     const regionWithoutExtension = region.replace(/\.[^/.]+$/, '');
     // Editor links are always like da.live/sheet#<path>
-    const path = `/hannessolo/da-playground/.placeholders/${type}/${regionWithoutExtension}`;
+    const path = `${this.basePath}/.placeholders/${type}/${regionWithoutExtension}`;
     return `https://da.live/sheet#${path}`;
   }
 
   handleViewResult() {
-    const url = 'https://da.live/sheet#/hannessolo/da-playground/placeholders';
+    const url = `https://da.live/sheet#${this.basePath}/placeholders`;
     window.open(url, '_blank');
   }
 
@@ -145,7 +150,10 @@ class PlaceholderManager extends LitElement {
       this.statusMessage = 'Publishing to preview...';
       this.statusType = 'info';
       
-      const url = 'https://admin.hlx.page/preview/hannessolo/da-playground/main/placeholders.json';
+      // Extract org and site from basePath (e.g., /hannessolo/da-playground -> hannessolo/da-playground)
+      const pathParts = this.basePath.split('/').filter(part => part);
+      const orgSite = pathParts.join('/');
+      const url = `https://admin.hlx.page/preview/${orgSite}/main/placeholders.json`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -159,7 +167,7 @@ class PlaceholderManager extends LitElement {
         this.statusType = 'success';
         
         // Open the preview URL
-        const previewUrl = 'https://main--da-playground--hannessolo.aem.page/placeholders.json';
+        const previewUrl = `https://main--${pathParts[1]}--${pathParts[0]}.aem.page/placeholders.json`;
         window.open(previewUrl, '_blank');
       } else {
         this.statusMessage = `Failed to publish to preview: ${response.status} ${response.statusText}`;
@@ -177,7 +185,10 @@ class PlaceholderManager extends LitElement {
       this.statusMessage = 'Publishing to live...';
       this.statusType = 'info';
       
-      const url = 'https://admin.hlx.page/live/hannessolo/da-playground/main/placeholders.json';
+      // Extract org and site from basePath (e.g., /hannessolo/da-playground -> hannessolo/da-playground)
+      const pathParts = this.basePath.split('/').filter(part => part);
+      const orgSite = pathParts.join('/');
+      const url = `https://admin.hlx.page/live/${orgSite}/main/placeholders.json`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -191,7 +202,7 @@ class PlaceholderManager extends LitElement {
         this.statusType = 'success';
         
         // Open the live URL
-        const liveUrl = 'https://main--da-playground--hannessolo.aem.live/placeholders.json';
+        const liveUrl = `https://main--${pathParts[1]}--${pathParts[0]}.aem.live/placeholders.json`;
         window.open(liveUrl, '_blank');
       } else {
         this.statusMessage = `Failed to publish to live: ${response.status} ${response.statusText}`;
@@ -221,7 +232,7 @@ class PlaceholderManager extends LitElement {
         console.log(`\n=== Processing type: ${type} ===`);
         
         // First, fetch the all.json file for this type
-        const allPath = `/hannessolo/da-playground/.placeholders/${type}/all.json`;
+        const allPath = `${this.basePath}/.placeholders/${type}/all.json`;
         const allSourceUrl = `https://admin.da.live/source${allPath}`;
         
         let baseData = null;
@@ -234,7 +245,7 @@ class PlaceholderManager extends LitElement {
           
           if (allResponse.ok) {
             const allData = await allResponse.json();
-            baseData = allData;
+            baseData = this.normalizeDataKeys(allData);
             console.log(`Base data from ${type}/all.json:`, allData);
           } else {
             console.warn(`No all.json found for type ${type}: ${allResponse.status}`);
@@ -253,7 +264,7 @@ class PlaceholderManager extends LitElement {
           
           console.log(`\n--- Processing region: ${type}/${region} ---`);
           
-          const regionPath = `/hannessolo/da-playground/.placeholders/${type}/${region}`;
+          const regionPath = `${this.basePath}/.placeholders/${type}/${region}`;
           const regionSourceUrl = `https://admin.da.live/source${regionPath}`;
           
           try {
@@ -266,6 +277,9 @@ class PlaceholderManager extends LitElement {
             if (regionResponse.ok) {
               const regionData = await regionResponse.json();
               console.log(`Region data from ${type}/${region}:`, regionData);
+
+              // Normalize regionData to use lowercase keys
+              this.normalizeDataKeys(regionData);
               
               // Merge the data: start with base (all.json) and overlay region-specific values
               const mergedData = this.mergePlaceholderData(baseData, regionData);
@@ -338,7 +352,7 @@ class PlaceholderManager extends LitElement {
       this.statusMessage = 'Copying placeholder data...';
       this.statusType = 'info';
       
-      const url = 'https://admin.da.live/source/hannessolo/da-playground/placeholders.json';
+      const url = `https://admin.da.live/source${this.basePath}/placeholders.json`;
       
       // Create FormData with the multi-sheet data
       const body = new FormData();
@@ -368,6 +382,21 @@ class PlaceholderManager extends LitElement {
       this.statusMessage = `Error copying placeholder data: ${err.message}`;
       this.statusType = 'error';
     }
+  }
+
+  normalizeDataKeys(data) {
+    // Normalize data array to use lowercase keys
+    if (data && data.data && Array.isArray(data.data)) {
+      data.data = data.data.map(item => {
+        const normalizedItem = {};
+        Object.keys(item).forEach(key => {
+          const lowerKey = key.toLowerCase();
+          normalizedItem[lowerKey] = item[key];
+        });
+        return normalizedItem;
+      });
+    }
+    return data;
   }
 
   mergePlaceholderData(baseData, regionData) {
@@ -414,6 +443,15 @@ class PlaceholderManager extends LitElement {
       merged[':type'] = regionData[':type'];
     }
     
+    // Sort data alphabetically by key
+    if (merged.data && Array.isArray(merged.data)) {
+      merged.data.sort((a, b) => {
+        const keyA = a.key || '';
+        const keyB = b.key || '';
+        return keyA.localeCompare(keyB);
+      });
+    }
+    
     // Update total count
     merged.total = merged.data ? merged.data.length : 0;
     
@@ -425,6 +463,7 @@ class PlaceholderManager extends LitElement {
       return html`
         <div class="loading">
           <h1>Placeholder Manager</h1>
+          <p class="org-site-info">Organization/Site: <strong>${this.basePath}</strong></p>
           <p>Loading placeholder files...</p>
         </div>
       `;
@@ -434,6 +473,7 @@ class PlaceholderManager extends LitElement {
       return html`
         <div>
           <h1>Placeholder Manager</h1>
+          <p class="org-site-info">Organization/Site: <strong>${this.basePath}</strong></p>
           <div class="error">
             <p>Error: ${this.error}</p>
             <button @click=${this.loadPlaceholderData} class="copy-publish-button" style="background: #dc3545; margin-top: 1rem;">
@@ -450,7 +490,8 @@ class PlaceholderManager extends LitElement {
       return html`
         <div>
           <h1>Placeholder Manager</h1>
-          <p>No placeholder files found in /hannessolo/da-playground/.placeholders/</p>
+          <p class="org-site-info">Organization/Site: <strong>${this.basePath}</strong></p>
+          <p>No placeholder files found in ${this.basePath}/.placeholders/</p>
         </div>
       `;
     }
@@ -458,6 +499,7 @@ class PlaceholderManager extends LitElement {
     return html`
       <div class="ai-bot">
         <h1>Placeholder Manager</h1>
+        <p class="org-site-info">Organization/Site: <strong>${this.basePath}</strong></p>
         <p>Manage placeholder files organized by type and region:</p>
         
         <div class="file-list">
