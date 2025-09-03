@@ -284,9 +284,11 @@ class PlaceholderManager extends LitElement {
               // Merge the data: start with base (all.json) and overlay region-specific values
               const mergedData = this.mergePlaceholderData(baseData, regionData);
               
-              // Create sheet name: if type is "default", just use region name, otherwise use "type-region"
+              // Create sheet name
               const regionName = region.replace('.json', ''); // Remove .json extension
-              const sheetName = regionName === 'global' ? type : `${type}-${regionName}`;
+              const sheetName = regionName === 'global' ? type : (
+                type === 'default' ? regionName :`${type}-${regionName}`
+              );
               
               // Add to multi-sheet result
               multiSheetResult[sheetName] = {
@@ -412,8 +414,6 @@ class PlaceholderManager extends LitElement {
         }
       });
     }
-
-    console.log('Base key map:', baseKeyMap);
     
     // Merge region data
     if (regionData.data && Array.isArray(regionData.data)) {
