@@ -335,11 +335,17 @@ class PlaceholderManager extends LitElement {
         }
       }
       
-      console.log('\n=== FINAL MULTI-SHEET RESULT ===');
+      console.log('\n=== BEFORE POST-PROCESSING ===');
       console.log('Multi-sheet placeholder data:', JSON.stringify(multiSheetResult, null, 2));
       
+      // Apply post-processing to merge sheets according to the specified rules
+      const postProcessedResult = this.postProcessMultiSheet(multiSheetResult);
+      
+      console.log('\n=== AFTER POST-PROCESSING ===');
+      console.log('Post-processed multi-sheet data:', JSON.stringify(postProcessedResult, null, 2));
+      
       // POST the data to the endpoint
-      await this.postPlaceholderData(multiSheetResult);
+      await this.postPlaceholderData(postProcessedResult);
       
     } catch (err) {
       console.error('Error in copy:', err);
@@ -458,6 +464,53 @@ class PlaceholderManager extends LitElement {
     merged.total = merged.data ? merged.data.length : 0;
     
     return merged;
+  }
+
+  postProcessMultiSheet(multiSheetData) {
+    console.log('\n=== POST-PROCESSING MULTI-SHEET ===');
+    
+    // Create a deep copy to avoid modifying the original
+    const result = JSON.parse(JSON.stringify(multiSheetData));
+    
+    // Special case: Merge "banner" with "default" (banner overwrites duplicate keys)
+    if (result.banner && result.default) {
+      console.log('Merging banner with default (banner overwrites)...');
+      const mergedDefault = this.mergePlaceholderData(result.default, result.banner);
+      result.default = mergedDefault;
+      
+      // Remove the banner sheet since it's now merged into default
+      delete result.banner;
+      result[':names'] = result[':names'].filter(name => name !== 'banner');
+      
+      console.log(`Merged banner into default. Default now has ${mergedDefault.data?.length || 0} items.`);
+    }
+    
+    // Normal case: Merge each region with its corresponding "banner-region"
+    // Find all banner-* sheets and their corresponding region sheets
+    const bannerSheets = result[':names'].filter(name => name.startsWith('banner-'));
+    
+    bannerSheets.forEach(bannerSheetName => {
+      // Extract region name from banner sheet (e.g., "banner-uae" -> "uae")
+      const regionName = bannerSheetName.replace('banner-', '');
+      
+      // Check if corresponding region sheet exists
+      if (result[regionName]) {
+        console.log(`Merging ${bannerSheetName} with ${regionName} (banner overwrites)...`);
+        const mergedRegion = this.mergePlaceholderData(result[regionName], result[bannerSheetName]);
+        result[regionName] = mergedRegion;
+        
+        // Remove the banner sheet since it's now merged
+        delete result[bannerSheetName];
+        result[':names'] = result[':names'].filter(name => name !== bannerSheetName);
+        
+        console.log(`Merged ${bannerSheetName} into ${regionName}. ${regionName} now has ${mergedRegion.data?.length || 0} items.`);
+      } else {
+        console.log(`Warning: Found ${bannerSheetName} but no corresponding ${regionName} sheet to merge with.`);
+      }
+    });
+    
+    console.log('Post-processing complete. Final sheet names:', result[':names']);
+    return result;
   }
 
   render() {
