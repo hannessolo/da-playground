@@ -17,6 +17,7 @@ class PlaceholderManager extends LitElement {
     statusMessage: { type: String, state: true },
     statusType: { type: String, state: true }, // 'success', 'error', 'info'
     basePath: { type: String, state: true },
+    collapsedSections: { type: Object, state: true },
   };
 
   constructor(props) {
@@ -26,6 +27,7 @@ class PlaceholderManager extends LitElement {
     this.placeholderData = {};
     this.statusMessage = '';
     this.statusType = 'info';
+    this.collapsedSections = {}; // Track which sections are collapsed
     
     // Initialize basePath from window query parameter, default to /hannessolo/da-playground
     const urlParams = new URLSearchParams(window.location.search);
@@ -60,6 +62,10 @@ class PlaceholderManager extends LitElement {
       
       // Parse types and then fetch regions for each type
       this.placeholderData = await this.parseAndFetchPlaceholderData(typesData);
+      
+      // Initialize collapsed state: all sections collapsed except "default"
+      this.initializeCollapsedState();
+      
       this.loading = false;
     } catch (err) {
       console.error('Error loading placeholder data:', err);
@@ -513,6 +519,25 @@ class PlaceholderManager extends LitElement {
     return result;
   }
 
+  initializeCollapsedState() {
+    const types = Object.keys(this.placeholderData);
+    const newCollapsedState = {};
+    
+    types.forEach(type => {
+      // All sections collapsed except "default"
+      newCollapsedState[type] = type !== 'default';
+    });
+    
+    this.collapsedSections = newCollapsedState;
+  }
+
+  toggleSection(type) {
+    this.collapsedSections = {
+      ...this.collapsedSections,
+      [type]: !this.collapsedSections[type]
+    };
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -560,8 +585,13 @@ class PlaceholderManager extends LitElement {
         <div class="file-list">
           ${types.map(type => html`
             <div class="type-section">
-              <div class="type-header">${type}</div>
-              <div class="region-list">
+              <div class="type-header" @click=${() => this.toggleSection(type)}>
+                <span class="type-title">${type}</span>
+                <span class="collapse-icon ${this.collapsedSections[type] ? 'collapsed' : 'expanded'}">
+                  ▼
+                </span>
+              </div>
+              <div class="region-list ${this.collapsedSections[type] ? 'collapsed' : ''}">
                 ${this.placeholderData[type].map(region => html`
                   <div class="region-item">
                     <span class="region-name">${region}</span>

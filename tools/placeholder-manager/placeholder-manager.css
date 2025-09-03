@@ -55,7 +55,7 @@ placeholder-manager {
 }
 
 .type-section:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); */
 }
 
 .type-header {
@@ -65,12 +65,61 @@ placeholder-manager {
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid #e1e1e1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.type-header:hover {
+  color: #1473e6;
+  background: rgba(20, 115, 230, 0.05);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: -8px -12px 12px -12px;
+}
+
+.type-header:has(.collapsed) {
+  margin-bottom: 0;
+  border: 0;
+  padding-bottom: 0;
+}
+
+.type-header:has(.collapsed):hover {
+  padding-bottom: 8px;
+  margin-bottom: -8px;
+}
+
+.type-title {
+  flex: 1;
+}
+
+.collapse-icon {
+  font-size: 12px;
+  color: #6b6b6b;
+  transition: transform 0.2s ease;
+  margin-left: 8px;
+}
+
+.collapse-icon.collapsed {
+  transform: rotate(-90deg);
 }
 
 .region-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: gap 0.3s ease;
+  overflow: hidden;
+}
+
+.region-list.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  gap: 0;
 }
 
 .region-item {
