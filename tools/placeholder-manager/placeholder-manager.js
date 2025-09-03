@@ -34,6 +34,11 @@ class PlaceholderManager extends LitElement {
     this.basePath = urlParams.get('basePath') || '/hannessolo/da-playground';
   }
 
+  addCacheBust(url) {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}cacheBust=${Math.random().toString(36).substring(7)}`;
+  }
+
   async connectedCallback() {
     super.connectedCallback();
     this.shadowRoot.adoptedStyleSheets = [style];
@@ -46,7 +51,7 @@ class PlaceholderManager extends LitElement {
       this.error = null;
       
       // First, get the list of types (directories) in .placeholders
-      const typesUrl = `https://admin.da.live/list${this.basePath}/.placeholders/`;
+      const typesUrl = this.addCacheBust(`https://admin.da.live/list${this.basePath}/.placeholders/`);
       const typesResponse = await fetch(typesUrl, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -90,7 +95,7 @@ class PlaceholderManager extends LitElement {
           if (type && type !== '.placeholders') {
             try {
               // Fetch regions (files) for this type
-              const regionsUrl = `https://admin.da.live/list${this.basePath}/.placeholders/${type}/`;
+              const regionsUrl = this.addCacheBust(`https://admin.da.live/list${this.basePath}/.placeholders/${type}/`);
               const regionsResponse = await fetch(regionsUrl, {
                 headers: {
                   'Authorization': `Bearer ${token}`
@@ -239,7 +244,7 @@ class PlaceholderManager extends LitElement {
         
         // First, fetch the all.json file for this type
         const allPath = `${this.basePath}/.placeholders/${type}/all.json`;
-        const allSourceUrl = `https://admin.da.live/source${allPath}`;
+        const allSourceUrl = this.addCacheBust(`https://admin.da.live/source${allPath}`);
         
         let baseData = null;
         try {
@@ -271,7 +276,7 @@ class PlaceholderManager extends LitElement {
           console.log(`\n--- Processing region: ${type}/${region} ---`);
           
           const regionPath = `${this.basePath}/.placeholders/${type}/${region}`;
-          const regionSourceUrl = `https://admin.da.live/source${regionPath}`;
+          const regionSourceUrl = this.addCacheBust(`https://admin.da.live/source${regionPath}`);
           
           try {
             const regionResponse = await fetch(regionSourceUrl, {
@@ -366,7 +371,7 @@ class PlaceholderManager extends LitElement {
       this.statusMessage = 'Copying placeholder data...';
       this.statusType = 'info';
       
-      const url = `https://admin.da.live/source${this.basePath}/placeholders.json`;
+      const url = this.addCacheBust(`https://admin.da.live/source${this.basePath}/placeholders.json`);
       
       // Create FormData with the multi-sheet data
       const body = new FormData();
