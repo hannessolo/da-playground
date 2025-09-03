@@ -215,8 +215,8 @@ class PlaceholderManager extends LitElement {
     }
   }
 
-  async handleCopyAndPublish() {
-    console.log('Copy and Publish button clicked');
+  async handleCopy() {
+    console.log('Copy button clicked');
     this.statusMessage = 'Processing placeholder data...';
     this.statusType = 'info';
     
@@ -286,7 +286,7 @@ class PlaceholderManager extends LitElement {
               
               // Create sheet name: if type is "default", just use region name, otherwise use "type-region"
               const regionName = region.replace('.json', ''); // Remove .json extension
-              const sheetName = type === 'default' ? regionName : `${type}-${regionName}`;
+              const sheetName = regionName === 'global' ? type : `${type}-${regionName}`;
               
               // Add to multi-sheet result
               multiSheetResult[sheetName] = {
@@ -340,7 +340,7 @@ class PlaceholderManager extends LitElement {
       await this.postPlaceholderData(multiSheetResult);
       
     } catch (err) {
-      console.error('Error in handleCopyAndPublish:', err);
+      console.error('Error in copy:', err);
       this.statusMessage = `Error: ${err.message}`;
       this.statusType = 'error';
     }
@@ -412,6 +412,8 @@ class PlaceholderManager extends LitElement {
         }
       });
     }
+
+    console.log('Base key map:', baseKeyMap);
     
     // Merge region data
     if (regionData.data && Array.isArray(regionData.data)) {
@@ -420,8 +422,8 @@ class PlaceholderManager extends LitElement {
           if (baseKeyMap.has(regionItem.key)) {
             // Update existing key with region value
             const existingItem = baseKeyMap.get(regionItem.key);
-            existingItem.text = regionItem.text; // Override the text value
             console.log(`  Overriding key "${regionItem.key}": "${existingItem.text}" -> "${regionItem.text}"`);
+            existingItem.text = regionItem.text; // Override the text value
           } else {
             // Add new key from region
             merged.data.push(regionItem);
@@ -526,7 +528,7 @@ class PlaceholderManager extends LitElement {
 
         <div class="button-group">
           <button 
-            @click=${this.handleCopyAndPublish}
+            @click=${this.handleCopy}
             class="copy-publish-button"
           >
             Copy
