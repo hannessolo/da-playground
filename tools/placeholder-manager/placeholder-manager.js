@@ -17,7 +17,6 @@ class PlaceholderManager extends LitElement {
     statusMessage: { type: String, state: true },
     statusType: { type: String, state: true }, // 'success', 'error', 'info'
     basePath: { type: String, state: true },
-    collapsedSections: { type: Object, state: true },
   };
 
   constructor(props) {
@@ -27,7 +26,6 @@ class PlaceholderManager extends LitElement {
     this.placeholderData = {};
     this.statusMessage = '';
     this.statusType = 'info';
-    this.collapsedSections = {}; // Track which sections are collapsed
 
     // Initialize basePath from window query parameter, default to /hannessolo/da-playground
     const urlParams = new URLSearchParams(window.location.search);
@@ -85,11 +83,8 @@ class PlaceholderManager extends LitElement {
       const typesData = await typesResponse.json();
       console.log('Types data:', typesData);
 
-      // Parse types and then fetch regions for each type
-      this.placeholderData = await this.parseAndFetchPlaceholderData(typesData);
-
-      // Initialize collapsed state: all sections collapsed except "default"
-      this.initializeCollapsedState();
+      // Parse types for the simplified structure
+      this.placeholderData = await this.parsePlaceholderData(typesData);
 
       this.loading = false;
     } catch (err) {
@@ -99,76 +94,46 @@ class PlaceholderManager extends LitElement {
     }
   }
 
-  async parseAndFetchPlaceholderData(typesData) {
-    const organized = {};
+  async parsePlaceholderData(typesData) {
+    const types = [];
 
-    // Process each item in the types data to find type directories
-    const typePromises = typesData.map(async (item) => {
+    // Process each item in the types data to find type files
+    typesData.forEach((item) => {
       if (item.path) {
-        // Expected path structure: /<org>/<site>/.placeholders/<type>
+        // Expected path structure: /<org>/<site>/.placeholders/<type>.json
         const pathParts = item.path.split('/');
 
         if (pathParts.length >= 4 && pathParts[pathParts.length - 2] === '.placeholders') {
-          const type = pathParts[pathParts.length - 1];
-
-          // Skip if it's not a directory or if it's the .placeholders directory itself
-          if (type && type !== '.placeholders') {
-            try {
-              // Fetch regions (files) for this type
-              const regionsUrl = this.addCacheBust(`https://admin.da.live/list${this.basePath}/.placeholders/${type}/`);
-              const regionsResponse = await fetch(regionsUrl, {
-                headers: {
-                  'Authorization': `Bearer ${token}`
-                }
-              });
-
-              if (regionsResponse.ok) {
-                const regionsData = await regionsResponse.json();
-                console.log(`Regions for type ${type}:`, regionsData);
-
-                // Extract region names from the response
-                const regions = regionsData
-                  .filter(regionItem => regionItem.path)
-                  .map(regionItem => {
-                    const regionPathParts = regionItem.path.split('/');
-                    return regionPathParts[regionPathParts.length - 1]; // Get the last part (region name)
-                  })
-                  .filter(region => region && region !== type); // Filter out empty or duplicate names
-
-                return { type, regions };
-              } else {
-                console.warn(`Failed to fetch regions for type ${type}: ${regionsResponse.status}`);
-                return { type, regions: [] };
-              }
-            } catch (err) {
-              console.error(`Error fetching regions for type ${type}:`, err);
-              return { type, regions: [] };
-            }
+          const fileName = pathParts[pathParts.length - 1];
+          
+          // Check if it's a .json file (not a directory)
+          if (fileName && fileName.endsWith('.json')) {
+            const type = fileName.replace('.json', '');
+            types.push(type);
           }
         }
       }
-      return null;
     });
 
-    // Wait for all type/region fetches to complete
-    const typeResults = await Promise.all(typePromises);
-
-    // Organize the results
-    typeResults.forEach(result => {
-      if (result && result.type) {
-        organized[result.type] = result.regions.sort();
-      }
-    });
-
-    return organized;
+    return types.sort();
   }
 
-  generateEditorLink(type, region) {
-    // remove extension from region
-    const regionWithoutExtension = region.replace(/\.[^/.]+$/, '');
+  generateEditorLink(type) {
     // Editor links are always like da.live/sheet#<path>
-    const path = `${this.basePath}/.placeholders/${type}/${regionWithoutExtension}`;
+    const path = `${this.basePath}/.placeholders/${type}`;
     return `https://da.live/sheet#${path}`;
+  }
+
+  createSheetName(type, sheetName) {
+    // Create the final sheet name based on type and sheet name
+    // This maintains the same naming convention as before
+    if (sheetName === 'global') {
+      return type;
+    } else if (type === 'default') {
+      return sheetName;
+    } else {
+      return `${type}-${sheetName}`;
+    }
   }
 
   handleViewResult() {
@@ -253,110 +218,75 @@ class PlaceholderManager extends LitElement {
       };
 
       // Process each type
-      for (const type of Object.keys(this.placeholderData)) {
+      for (const type of this.placeholderData) {
         console.log(`\n=== Processing type: ${type} ===`);
 
-        // First, fetch the all.json file for this type
-        const allPath = `${this.basePath}/.placeholders/${type}/all.json`;
-        const allSourceUrl = this.addCacheBust(`https://admin.da.live/source${allPath}`);
+        // Fetch the single multi-sheet file for this type
+        const typePath = `${this.basePath}/.placeholders/${type}.json`;
+        const typeSourceUrl = this.addCacheBust(`https://admin.da.live/source${typePath}`);
 
-        let baseData = null;
         try {
-          const allResponse = await fetch(allSourceUrl, {
+          const typeResponse = await fetch(typeSourceUrl, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
 
-          if (allResponse.ok) {
-            const allData = await allResponse.json();
-            baseData = this.normalizeDataKeys(allData);
-            console.log(`Base data from ${type}/all.json:`, allData);
+          if (typeResponse.ok) {
+            const typeData = await typeResponse.json();
+            console.log(`Multi-sheet data from ${type}.json:`, typeData);
+
+            // Check if it's a valid multi-sheet structure
+            if (typeData[':type'] === 'multi-sheet' && typeData[':names']) {
+              // First, get the base data from the "all" sheet
+              let baseData = null;
+              if (typeData.all) {
+                baseData = this.normalizeDataKeys(typeData.all);
+                console.log(`Base data from ${type}/all sheet:`, typeData.all);
+              } else {
+                console.warn(`No "all" sheet found for type ${type}`);
+                baseData = { data: [] }; // Start with empty data if no all sheet
+              }
+
+              // Now process each sheet in the multi-sheet (excluding "all")
+              for (const sheetName of typeData[':names']) {
+                if (sheetName === 'all') continue; // Skip all sheet as we already processed it
+
+                if (typeData[sheetName]) {
+                  console.log(`\n--- Processing sheet: ${type}/${sheetName} ---`);
+
+                  // Normalize the sheet data
+                  const normalizedSheet = this.normalizeDataKeys(typeData[sheetName]);
+                  console.log(`Sheet data from ${type}/${sheetName}:`, normalizedSheet);
+
+                  // Merge the data: start with base (all) and overlay sheet-specific values
+                  const mergedData = this.mergePlaceholderData(baseData, normalizedSheet);
+
+                  // Create the final sheet name based on type and sheet name
+                  const finalSheetName = this.createSheetName(type, sheetName);
+                  
+                  // Add to multi-sheet result
+                  multiSheetResult[finalSheetName] = {
+                    total: mergedData.total || mergedData.data?.length || 0,
+                    offset: 0,
+                    limit: mergedData.total || mergedData.data?.length || 0,
+                    data: mergedData.data || []
+                  };
+
+                  // Add sheet name to names array
+                  multiSheetResult[':names'].push(finalSheetName);
+
+                  console.log(`Added sheet "${finalSheetName}" with ${mergedData.data?.length || 0} items`);
+                }
+              }
+            } else {
+              console.warn(`Invalid multi-sheet structure for type ${type}`);
+            }
           } else {
-            console.warn(`No all.json found for type ${type}: ${allResponse.status}`);
-            baseData = { data: [] }; // Start with empty data if no all.json
+            console.error(`Failed to fetch ${type}.json: ${typeResponse.status} ${typeResponse.statusText}`);
           }
         } catch (err) {
-          console.error(`Error fetching all.json for type ${type}:`, err);
-          baseData = { data: [] }; // Start with empty data on error
-        }
-
-        // Now process each region for this type
-        const regions = this.placeholderData[type];
-
-        for (const region of regions) {
-          if (region === 'all.json') continue; // Skip all.json as we already processed it
-
-          console.log(`\n--- Processing region: ${type}/${region} ---`);
-
-          const regionPath = `${this.basePath}/.placeholders/${type}/${region}`;
-          const regionSourceUrl = this.addCacheBust(`https://admin.da.live/source${regionPath}`);
-
-          try {
-            const regionResponse = await fetch(regionSourceUrl, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-
-            if (regionResponse.ok) {
-              const regionData = await regionResponse.json();
-              console.log(`Region data from ${type}/${region}:`, regionData);
-
-              // Normalize regionData to use lowercase keys
-              this.normalizeDataKeys(regionData);
-
-              // Merge the data: start with base (all.json) and overlay region-specific values
-              const mergedData = this.mergePlaceholderData(baseData, regionData);
-
-              // Create sheet name
-              const regionName = region.replace('.json', ''); // Remove .json extension
-              const sheetName = regionName === 'global' ? type : (
-                type === 'default' ? regionName :`${type}-${regionName}`
-              );
-
-              // Add to multi-sheet result
-              multiSheetResult[sheetName] = {
-                total: mergedData.total || mergedData.data?.length || 0,
-                offset: 0,
-                limit: mergedData.total || mergedData.data?.length || 0,
-                data: mergedData.data || []
-              };
-
-              // Add sheet name to names array
-              multiSheetResult[':names'].push(sheetName);
-
-              console.log(`Added sheet "${sheetName}" with ${mergedData.data?.length || 0} items`);
-            } else {
-              console.error(`Failed to fetch ${type}/${region}: ${regionResponse.status} ${regionResponse.statusText}`);
-              // Use base data if region fetch fails
-              const regionName = region.replace('.json', '');
-              const sheetName = type === 'default' ? regionName : `${type}-${regionName}`;
-
-              multiSheetResult[sheetName] = {
-                total: baseData.total || baseData.data?.length || 0,
-                offset: 0,
-                limit: baseData.total || baseData.data?.length || 0,
-                data: baseData.data || []
-              };
-
-              multiSheetResult[':names'].push(sheetName);
-            }
-          } catch (err) {
-            console.error(`Error fetching ${type}/${region}:`, err);
-            // Use base data if region fetch fails
-            const regionName = region.replace('.json', '');
-            const sheetName = type === 'default' ? regionName : `${type}-${regionName}`;
-
-            multiSheetResult[sheetName] = {
-              total: baseData.total || baseData.data?.length || 0,
-              offset: 0,
-              limit: baseData.total || baseData.data?.length || 0,
-              data: baseData.data || []
-            };
-
-            multiSheetResult[':names'].push(sheetName);
-          }
+          console.error(`Error fetching ${type}.json:`, err);
         }
       }
 
@@ -538,24 +468,6 @@ class PlaceholderManager extends LitElement {
     return result;
   }
 
-  initializeCollapsedState() {
-    const types = Object.keys(this.placeholderData);
-    const newCollapsedState = {};
-
-    types.forEach(type => {
-      // All sections collapsed except "default"
-      newCollapsedState[type] = type !== 'default';
-    });
-
-    this.collapsedSections = newCollapsedState;
-  }
-
-  toggleSection(type) {
-    this.collapsedSections = {
-      ...this.collapsedSections,
-      [type]: !this.collapsedSections[type]
-    };
-  }
 
   render() {
     if (this.loading) {
@@ -583,7 +495,7 @@ class PlaceholderManager extends LitElement {
       `;
     }
 
-    const types = Object.keys(this.placeholderData);
+    const types = this.placeholderData;
 
     if (types.length === 0) {
       return html`
@@ -599,31 +511,19 @@ class PlaceholderManager extends LitElement {
       <div class="ai-bot">
         <h1>Placeholder Manager</h1>
         <p class="org-site-info">Organization/Site: <strong>${this.basePath}</strong></p>
-        <p>Manage placeholder files organized by type and region:</p>
+        <p>Manage placeholder files by type:</p>
 
         <div class="file-list">
           ${types.map(type => html`
-            <div class="type-section">
-              <div class="type-header" @click=${() => this.toggleSection(type)}>
-                <span class="type-title">${type}</span>
-                <span class="collapse-icon ${this.collapsedSections[type] ? 'collapsed' : 'expanded'}">
-                  ▼
-                </span>
-              </div>
-              <div class="region-list ${this.collapsedSections[type] ? 'collapsed' : ''}">
-                ${this.placeholderData[type].map(region => html`
-                  <div class="region-item">
-                    <span class="region-name">${region}</span>
-                    <a
-                      href="${this.generateEditorLink(type, region)}"
-                      target="_blank"
-                      class="editor-link"
-                    >
-                      Open in Editor
-                    </a>
-                  </div>
-                `)}
-              </div>
+            <div class="type-item">
+              <span class="type-name">${type}</span>
+              <a
+                href="${this.generateEditorLink(type)}"
+                target="_blank"
+                class="editor-link"
+              >
+                Open in Editor
+              </a>
             </div>
           `)}
         </div>
