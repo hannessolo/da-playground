@@ -241,7 +241,7 @@ class PlaceholderManager extends LitElement {
               // First, get the base data from the "all" sheet
               let baseData = null;
               if (typeData.all) {
-                baseData = this.normalizeDataKeys(typeData.all);
+                baseData = typeData.all;
                 console.log(`Base data from ${type}/all sheet:`, typeData.all);
               } else {
                 console.warn(`No "all" sheet found for type ${type}`);
@@ -255,12 +255,12 @@ class PlaceholderManager extends LitElement {
                 if (typeData[sheetName]) {
                   console.log(`\n--- Processing sheet: ${type}/${sheetName} ---`);
 
-                  // Normalize the sheet data
-                  const normalizedSheet = this.normalizeDataKeys(typeData[sheetName]);
-                  console.log(`Sheet data from ${type}/${sheetName}:`, normalizedSheet);
+                  // Get the sheet data
+                  const sheetData = typeData[sheetName];
+                  console.log(`Sheet data from ${type}/${sheetName}:`, sheetData);
 
                   // Merge the data: start with base (all) and overlay sheet-specific values
-                  const mergedData = this.mergePlaceholderData(baseData, normalizedSheet);
+                  const mergedData = this.mergePlaceholderData(baseData, sheetData);
 
                   // Create the final sheet name based on type and sheet name
                   const finalSheetName = this.createSheetName(type, sheetName);
@@ -347,21 +347,6 @@ class PlaceholderManager extends LitElement {
     }
   }
 
-  normalizeDataKeys(data) {
-    // Normalize data array to use lowercase keys
-    if (data && data.data && Array.isArray(data.data)) {
-      data.data = data.data.map(item => {
-        const normalizedItem = {};
-        Object.keys(item).forEach(key => {
-          const lowerKey = key.toLowerCase();
-          normalizedItem[lowerKey] = item[key];
-        });
-        return normalizedItem;
-      });
-    }
-    return data;
-  }
-
   mergePlaceholderData(baseData, regionData) {
     // Create a deep copy of the base data
     const merged = JSON.parse(JSON.stringify(baseData));
@@ -370,8 +355,8 @@ class PlaceholderManager extends LitElement {
     const baseKeyMap = new Map();
     if (merged.data && Array.isArray(merged.data)) {
       merged.data.forEach(item => {
-        if (item.key) {
-          baseKeyMap.set(item.key, item);
+        if (item.Key) {
+          baseKeyMap.set(item.Key, item);
         }
       });
     }
@@ -379,17 +364,17 @@ class PlaceholderManager extends LitElement {
     // Merge region data
     if (regionData.data && Array.isArray(regionData.data)) {
       regionData.data.forEach(regionItem => {
-        if (regionItem.key) {
-          if (baseKeyMap.has(regionItem.key)) {
+        if (regionItem.Key) {
+          if (baseKeyMap.has(regionItem.Key)) {
             // Update existing key with region value
-            const existingItem = baseKeyMap.get(regionItem.key);
-            console.log(`  Overriding key "${regionItem.key}": "${existingItem.text}" -> "${regionItem.text}"`);
-            existingItem.text = regionItem.text; // Override the text value
+            const existingItem = baseKeyMap.get(regionItem.Key);
+            console.log(`  Overriding key "${regionItem.Key}": "${existingItem.Text}" -> "${regionItem.Text}"`);
+            existingItem.Text = regionItem.Text; // Override the text value
           } else {
             // Add new key from region
             merged.data.push(regionItem);
-            baseKeyMap.set(regionItem.key, regionItem);
-            console.log(`  Adding new key "${regionItem.key}": "${regionItem.text}"`);
+            baseKeyMap.set(regionItem.Key, regionItem);
+            console.log(`  Adding new key "${regionItem.Key}": "${regionItem.Text}"`);
           }
         }
       });
@@ -409,8 +394,8 @@ class PlaceholderManager extends LitElement {
     // Sort data alphabetically by key
     if (merged.data && Array.isArray(merged.data)) {
       merged.data.sort((a, b) => {
-        const keyA = a.key || '';
-        const keyB = b.key || '';
+        const keyA = a.Key || '';
+        const keyB = b.Key || '';
         return keyA.localeCompare(keyB);
       });
     }
