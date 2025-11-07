@@ -27,7 +27,8 @@
     "name": "Product Carousel",
     "output": "\n        <table width=\"100%\" style=\"border: 1px solid black;\">\n            <tr>\n                <th style=\"border: 1px solid black; background: lightgray;\">Product Carousel</th>\n            </tr>\n            <tr>\n                <td style=\"border: 1px solid black\">\n                    <ul>\n                      {{ #items }}\n                        <li>{{sku}}</li>\n                      {{/items}}\n                    </ul>\n                </td>\n            </tr>\n        </table>\n    ",
     "selection": "multiple",
-    "type": "item"
+    "type": "item",
+    "allowVariants": "true"
   },
   {
     "key": "category-carousel",
