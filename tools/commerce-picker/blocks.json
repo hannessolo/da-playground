@@ -5,7 +5,7 @@
     "output": "\n      {{ #items }}\n        {{#isFolder}}\n          {{id}}\n        {{/isFolder}}\n        {{^isFolder}}\n          {{sku}}\n        {{/isFolder}}\n      {{/items}}\n    ",
     "selection": "single",
     "type": "any",
-    "allowVariants": "true",
+    "allowVariants": "true"
   },
   {
     "key": "product-list-page",
@@ -20,7 +20,7 @@
     "output": "\n      <table width=\"100%\" style=\"border: 1px solid black;\">\n            <tr>\n                <th colspan=\"2\" style=\"border: 1px solid black; background: lightgray;\">Product Teaser</th>\n            </tr>\n            {{ #items }}\n            <tr>\n                <td style=\"border: 1px solid black\">SKU</td>\n                <td style=\"border: 1px solid black\">{{ sku }}</td>\n            </tr>\n            {{/items}}\n            <tr>\n                <td style=\"border: 1px solid black\">Details Button</td>\n                <td style=\"border: 1px solid black\">true</td>\n            </tr>\n            <tr>\n                <td style=\"border: 1px solid black\">Cart Button</td>\n                <td style=\"border: 1px solid black\">true</td>\n            </tr>\n        </table>\n    ",
     "selection": "single",
     "type": "product",
-    "allowVariants": "true",
+    "allowVariants": "true"
   },
   {
     "key": "product-carousel",
